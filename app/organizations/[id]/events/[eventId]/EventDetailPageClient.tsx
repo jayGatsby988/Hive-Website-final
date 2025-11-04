@@ -22,6 +22,8 @@ import {
   Shield,
   LogIn,
   LogOut,
+  UserCircle,
+  Tag,
 } from 'lucide-react';
 
 export default function EventDetailPageClient() {
@@ -46,6 +48,9 @@ export default function EventDetailPageClient() {
   }>>([]);
   const [checkingInOut, setCheckingInOut] = useState<string | null>(null);
   const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set());
+  const [isUserRegistered, setIsUserRegistered] = useState<boolean>(false);
+  const [isUserCheckedIn, setIsUserCheckedIn] = useState<boolean>(false);
+  const [selfCheckingInOut, setSelfCheckingInOut] = useState<boolean>(false);
 
   const statusBadge = useMemo(() => {
     if (!event) return 'bg-hiveGray-light text-hiveGray';
@@ -82,23 +87,39 @@ export default function EventDetailPageClient() {
             : (e?.signup_count ?? attendeesData.length)
         );
 
-        const { count: ciCount } = await supabase
+        // Count active check-ins (no check_out_time)
+        const { count: checkinsCount } = await supabase
           .from('event_checkins')
           .select('*', { count: 'exact', head: true })
-          .eq('event_id', eventId);
-        setCheckinCount(ciCount || 0);
+          .eq('event_id', eventId)
+          .is('check_out_time', null);
+        setCheckinCount(checkinsCount || 0);
 
         // Load activity log (check-ins and admin check-outs)
         const logItems = await loadActivity(eventId);
         setActivity(logItems);
 
-        // Load active sessions
-        const { data: sessions } = await supabase
-          .from('volunteer_sessions')
+        // Load active check-ins (no check_out_time)
+        const { data: checkins } = await supabase
+          .from('event_checkins')
           .select('user_id')
           .eq('event_id', eventId)
-          .eq('status', 'active');
-        setActiveSessions(new Set((sessions || []).map((s: any) => s.user_id)));
+          .is('check_out_time', null);
+        setActiveSessions(new Set((checkins || []).map((c: any) => c.user_id)));
+
+        // Check if current user is registered
+        if (user) {
+          const { data: userAttendee } = await supabase
+            .from('event_attendees')
+            .select('id')
+            .eq('event_id', eventId)
+            .eq('user_id', user.id)
+            .single();
+          setIsUserRegistered(!!userAttendee);
+
+          // Check if current user is checked in
+          setIsUserCheckedIn(checkins ? checkins.some((c: any) => c.user_id === user.id) : false);
+        }
       } catch (err) {
         console.error('Failed to load event', err);
       } finally {
@@ -106,55 +127,54 @@ export default function EventDetailPageClient() {
       }
     };
     load();
-  }, [eventId]);
+  }, [eventId, user]);
 
-  // Realtime updates for check-ins and admin audit
+  // Auto-refresh data every 3 seconds (alternative to Realtime which is beta)
   useEffect(() => {
     if (!eventId) return;
 
-    const channel = supabase
-      .channel(`event-activity-${eventId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_checkins', filter: `event_id=eq.${eventId}` }, () => {
-        // Refresh count and activity when a check-in changes
-        (async () => {
-          const { count: ciCount } = await supabase
-            .from('event_checkins')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', eventId);
-          setCheckinCount(ciCount || 0);
-          const logItems = await loadActivity(eventId);
-          setActivity(logItems);
-        })();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_checkin_audit', filter: `event_id=eq.${eventId}` }, () => {
-        (async () => {
-          const logItems = await loadActivity(eventId);
-          setActivity(logItems);
-        })();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'volunteer_sessions', filter: `event_id=eq.${eventId}` }, () => {
-        // Refresh active sessions and activity when volunteer sessions change
-        (async () => {
-          const logItems = await loadActivity(eventId);
-          setActivity(logItems);
-          const { data: sessions } = await supabase
-            .from('volunteer_sessions')
-            .select('user_id')
-            .eq('event_id', eventId)
-            .eq('status', 'active');
-          setActiveSessions(new Set((sessions || []).map((s: any) => s.user_id)));
-        })();
-      })
-      .subscribe();
-
-    return () => {
+    const refreshData = async () => {
       try {
-        supabase.removeChannel(channel);
-      } catch (_) {
-        // ignore
+        // Refresh activity log
+        const logItems = await loadActivity(eventId);
+        setActivity(logItems);
+        
+        // Refresh active check-ins (no check_out_time)
+        const { data: checkins } = await supabase
+          .from('event_checkins')
+          .select('user_id')
+          .eq('event_id', eventId)
+          .is('check_out_time', null);
+        setActiveSessions(new Set((checkins || []).map((c: any) => c.user_id)));
+        
+        // Update current user's check-in status
+        if (user && checkins) {
+          setIsUserCheckedIn(checkins.some((c: any) => c.user_id === user.id));
+        }
+        
+        // Refresh check-in count
+        const { count: checkinsCount } = await supabase
+          .from('event_checkins')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', eventId)
+          .is('check_out_time', null);
+        setCheckinCount(checkinsCount || 0);
+
+        // Refresh attendee list
+        const attendeesData = await loadAttendeesWithProfiles(eventId);
+        setAttendees(attendeesData);
+      } catch (err) {
+        console.error('[Auto-refresh] Failed to refresh data:', err);
       }
     };
-  }, [eventId]);
+
+    // Refresh every 3 seconds
+    const interval = setInterval(refreshData, 3000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [eventId, user]);
 
   const loadAttendeesWithProfiles = async (eId: string) => {
     try {
@@ -262,21 +282,23 @@ export default function EventDetailPageClient() {
           ? regCount
           : (e?.signup_count ?? attendeesData.length)
       );
-      const { count: ciCount } = await supabase
+      // Count active check-ins
+      const { count: checkinsCount } = await supabase
         .from('event_checkins')
         .select('*', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-      setCheckinCount(ciCount || 0);
+        .eq('event_id', eventId)
+        .is('check_out_time', null);
+      setCheckinCount(checkinsCount || 0);
 
       const logItems = await loadActivity(eventId);
       setActivity(logItems);
 
-      const { data: sessions } = await supabase
-        .from('volunteer_sessions')
+      const { data: checkins } = await supabase
+        .from('event_checkins')
         .select('user_id')
         .eq('event_id', eventId)
-        .eq('status', 'active');
-      setActiveSessions(new Set((sessions || []).map((s: any) => s.user_id)));
+        .is('check_out_time', null);
+      setActiveSessions(new Set((checkins || []).map((c: any) => c.user_id)));
     } catch (err) {
       console.error('Failed to reload event', err);
     } finally {
@@ -309,6 +331,36 @@ export default function EventDetailPageClient() {
       alert(err.message || 'Failed to check out user');
     } finally {
       setCheckingInOut(null);
+    }
+  };
+
+  const handleSelfCheckIn = async () => {
+    if (!user || !event) return;
+    try {
+      setSelfCheckingInOut(true);
+      await eventService.selfCheckIn(event.id, user.id);
+      setIsUserCheckedIn(true);
+      await reload();
+    } catch (err: any) {
+      console.error('Failed to check in:', err);
+      alert(err.message || 'Failed to check in');
+    } finally {
+      setSelfCheckingInOut(false);
+    }
+  };
+
+  const handleSelfCheckOut = async () => {
+    if (!user || !event) return;
+    try {
+      setSelfCheckingInOut(true);
+      await eventService.selfCheckOut(event.id, user.id);
+      setIsUserCheckedIn(false);
+      await reload();
+    } catch (err: any) {
+      console.error('Failed to check out:', err);
+      alert(err.message || 'Failed to check out');
+    } finally {
+      setSelfCheckingInOut(false);
     }
   };
 
@@ -445,6 +497,32 @@ export default function EventDetailPageClient() {
                   <span className="text-sm">{event.location}</span>
                 </div>
               )}
+              {event.allowed_roles && event.allowed_roles.length > 0 && (
+                <div className="flex items-start gap-2 text-hiveGray mt-3 pt-3 border-t border-gray-200">
+                  <Tag className="w-4 h-4 text-hiveYellow mt-0.5" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium mb-1.5">Who can see this event:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {event.allowed_roles.includes('everyone') || event.allowed_roles.length === 0 ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                          <Users className="w-3 h-3 mr-1" />
+                          Everyone
+                        </span>
+                      ) : (
+                        event.allowed_roles.map((role) => (
+                          <span 
+                            key={role} 
+                            className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200"
+                          >
+                            <UserCircle className="w-3 h-3 mr-1" />
+                            {role}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="w-full md:w-80">
@@ -469,6 +547,72 @@ export default function EventDetailPageClient() {
           </div>
         </div>
       </HiveCard>
+
+      {/* Self Check-In/Out Section for Regular Users */}
+      {!isAdmin && isUserRegistered && event.status === 'in_progress' && (
+        <HiveCard hoverable={false} className="bg-gradient-to-r from-hiveYellow/10 to-hiveYellow/5 border-2 border-hiveYellow">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-hiveYellow rounded-lg flex items-center justify-center">
+                {isUserCheckedIn ? (
+                  <LogOut className="w-6 h-6 text-white" />
+                ) : (
+                  <LogIn className="w-6 h-6 text-white" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-hiveGray-dark">
+                  {isUserCheckedIn ? 'You are checked in!' : 'Ready to check in?'}
+                </h3>
+                <p className="text-sm text-hiveGray">
+                  {isUserCheckedIn 
+                    ? 'Check out when you leave to record your volunteer hours' 
+                    : 'Check in now to start tracking your volunteer hours'}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {isUserCheckedIn ? (
+                <HiveButton
+                  variant="secondary"
+                  onClick={handleSelfCheckOut}
+                  disabled={selfCheckingInOut}
+                  className="!bg-gray-800 !text-white hover:!bg-black"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  {selfCheckingInOut ? 'Checking Out...' : 'Check Out'}
+                </HiveButton>
+              ) : (
+                <HiveButton
+                  onClick={handleSelfCheckIn}
+                  disabled={selfCheckingInOut}
+                  className="!bg-hiveYellow !text-white hover:!bg-yellow-600"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  {selfCheckingInOut ? 'Checking In...' : 'Check In'}
+                </HiveButton>
+              )}
+            </div>
+          </div>
+        </HiveCard>
+      )}
+
+      {/* Message for users who aren't registered */}
+      {!isAdmin && !isUserRegistered && event.status === 'in_progress' && (
+        <HiveCard hoverable={false} className="bg-gray-50 border-2 border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-gray-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-hiveGray-dark">Not registered for this event</h3>
+              <p className="text-sm text-hiveGray">
+                You need to sign up for this event before you can check in
+              </p>
+            </div>
+          </div>
+        </HiveCard>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <HiveCard hoverable={false} className="lg:col-span-2">

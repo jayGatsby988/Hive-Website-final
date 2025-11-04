@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { eventService } from '@/lib/services'
-import { Calendar, MapPin, Clock, Users, X, Save, Eye, EyeOff } from 'lucide-react'
+import { eventService, roleService } from '@/lib/services'
+import { Calendar, MapPin, Clock, Users, X, Save, Eye, EyeOff, UserCircle } from 'lucide-react'
 import HiveCard from '@/components/common/HiveCard'
 import HiveButton from '@/components/common/HiveButton'
 import HiveInput from '@/components/common/HiveInput'
@@ -27,6 +27,7 @@ interface EventFormData {
   requires_approval: boolean
   tags: string[]
   registration_deadline?: string
+  allowed_roles: string[]
 }
 
 export default function AdminEventCreation() {
@@ -36,6 +37,7 @@ export default function AdminEventCreation() {
   const [loading, setLoading] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [errors, setErrors] = useState<Partial<Record<keyof EventFormData, string>>>({})
+  const [availableRoles, setAvailableRoles] = useState<Array<{id: string, role_name: string}>>([])
   
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
@@ -52,8 +54,18 @@ export default function AdminEventCreation() {
     is_private: false,
     requires_approval: false,
     tags: [],
-    registration_deadline: ''
+    registration_deadline: '',
+    allowed_roles: ['everyone']
   })
+
+  // Load available roles
+  useEffect(() => {
+    if (selectedOrg) {
+      roleService.getOrganizationRoles(selectedOrg.id)
+        .then(roles => setAvailableRoles(roles))
+        .catch(err => console.error('Failed to load roles:', err))
+    }
+  }, [selectedOrg])
 
   if (!isAdmin || !selectedOrg || !user) {
     return (
@@ -119,6 +131,7 @@ export default function AdminEventCreation() {
         created_by: user.id,
         tags: formData.tags || [],
         registration_deadline: formData.registration_deadline || null,
+        allowed_roles: formData.allowed_roles || ['everyone'],
         signup_count: 0,
         is_active: true,
         start_type: 'manual' as const,
@@ -372,6 +385,93 @@ export default function AdminEventCreation() {
                   }
                 }}
               />
+            </div>
+
+            {/* Allowed Roles */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <UserCircle className="w-4 h-4" />
+                Who can see this event?
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Select which roles are allowed to view and sign up for this event. Select "everyone" to show to all members.
+              </p>
+              <div className="space-y-2">
+                {/* Everyone option (default) */}
+                <label className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all hover:border-blue-300 ${formData.allowed_roles.includes('everyone') ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                  <input
+                    type="checkbox"
+                    checked={formData.allowed_roles.includes('everyone')}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, allowed_roles: ['everyone'] }))
+                      } else {
+                        setFormData(prev => ({ ...prev, allowed_roles: [] }))
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="font-semibold text-gray-900">Everyone</span>
+                    <span className="text-xs text-gray-500 ml-2">(All members can see this event)</span>
+                  </div>
+                </label>
+
+                {/* Available roles */}
+                {!formData.allowed_roles.includes('everyone') && availableRoles.map(role => (
+                  <label
+                    key={role.id}
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all hover:border-purple-300 ${
+                      formData.allowed_roles.includes(role.role_name) 
+                        ? 'border-purple-500 bg-purple-50' 
+                        : 'border-gray-200'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.allowed_roles.includes(role.role_name)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({
+                            ...prev,
+                            allowed_roles: [...prev.allowed_roles.filter(r => r !== 'everyone'), role.role_name]
+                          }))
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            allowed_roles: prev.allowed_roles.filter(r => r !== role.role_name)
+                          }))
+                        }
+                      }}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    />
+                    <span className="font-semibold text-gray-900 capitalize">{role.role_name}</span>
+                  </label>
+                ))}
+
+                {!formData.allowed_roles.includes('everyone') && availableRoles.length === 0 && (
+                  <p className="text-sm text-gray-500 italic py-2">
+                    No roles have been created yet. Events will be visible to everyone.
+                  </p>
+                )}
+
+                {/* Show selected roles */}
+                {formData.allowed_roles.length > 0 && !formData.allowed_roles.includes('everyone') && (
+                  <div className="pt-3 border-t">
+                    <p className="text-xs text-gray-600 mb-2">Selected roles:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.allowed_roles.map(role => (
+                        <span
+                          key={role}
+                          className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Action Buttons */}

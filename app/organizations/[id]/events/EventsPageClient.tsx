@@ -60,25 +60,64 @@ export default function EventsPageClient() {
     loadEvents();
   }, [selectedOrg, user]);
 
+  // Realtime updates for event changes
+  useEffect(() => {
+    if (!selectedOrg) return;
+
+    const channel = supabase
+      .channel(`events-${selectedOrg.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `organization_id=eq.${selectedOrg.id}` }, () => {
+        loadEvents();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_attendees' }, () => {
+        loadEvents();
+      })
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (_) {
+        // ignore
+      }
+    };
+  }, [selectedOrg]);
+
   const loadEvents = async () => {
     if (!selectedOrg) return;
 
     try {
       setLoading(true);
+      console.log('[EventsPage] Loading events for org:', selectedOrg.id);
+      console.log('[EventsPage] Current user:', user?.id);
+      
       const supabaseEvents = await eventService.getByOrganization(selectedOrg.id);
-      const convertedEvents: Event[] = supabaseEvents.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: event.date,
-        time: `${event.time}${event.end_time ? ` - ${event.end_time}` : ''}`,
-        location: event.location || '',
-        description: event.description,
-        attendees: event.signup_count,
-        maxAttendees: event.max_attendees,
-        status: event.status === 'completed' ? 'completed' : 
-                event.status === 'in_progress' ? 'ongoing' : 'upcoming',
-        hours: 0, // This would need to be calculated
-      }));
+      console.log('[EventsPage] ✅ Loaded events from Supabase:', supabaseEvents);
+      console.log('[EventsPage] Event count:', supabaseEvents.length);
+      
+      // Log role filtering info
+      supabaseEvents.forEach(event => {
+        console.log(`[EventsPage] Event "${event.title}":`, {
+          allowed_roles: event.allowed_roles || 'none (everyone can see)',
+          status: event.status
+        });
+      });
+      const convertedEvents: Event[] = supabaseEvents.map(event => {
+        console.log(`[EventsPage] Event ${event.title}: signup_count=${event.signup_count}, max_attendees=${event.max_attendees}`);
+        return {
+          id: event.id,
+          title: event.title,
+          date: event.date,
+          time: `${event.time}${event.end_time ? ` - ${event.end_time}` : ''}`,
+          location: event.location || '',
+          description: event.description,
+          attendees: event.signup_count || 0,
+          maxAttendees: event.max_attendees || 0,
+          status: event.status === 'completed' ? 'completed' : 
+                  event.status === 'in_progress' ? 'ongoing' : 'upcoming',
+          hours: 0,
+        };
+      });
       setEvents(convertedEvents);
 
       // Load which events user has joined
@@ -368,14 +407,14 @@ export default function EventsPageClient() {
                       </span>
                     </div>
                     <span className="text-sm text-hiveGray">
-                      {Math.round((event.attendees / event.maxAttendees) * 100)}%
+                      {event.maxAttendees > 0 ? Math.round((event.attendees / event.maxAttendees) * 100) : 0}%
                     </span>
                   </div>
                   <div className="w-full bg-hiveGray-light rounded-full h-2">
                     <div
                       className="bg-hiveYellow h-2 rounded-full transition-all"
                       style={{
-                        width: `${(event.attendees / event.maxAttendees) * 100}%`,
+                        width: `${event.maxAttendees > 0 ? (event.attendees / event.maxAttendees) * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -424,6 +463,16 @@ export default function EventsPageClient() {
                       >
                         <Users className="w-4 h-4 mr-2" />
                         Joined
+                      </HiveButton>
+                    ) : event.attendees >= event.maxAttendees ? (
+                      <HiveButton 
+                        variant="secondary"
+                        size="sm" 
+                        className="flex-1 !bg-red-100 !text-red-700"
+                        disabled
+                        onClick={(e) => { e.stopPropagation(); }}
+                      >
+                        Event Full
                       </HiveButton>
                     ) : (
                       <HiveButton 

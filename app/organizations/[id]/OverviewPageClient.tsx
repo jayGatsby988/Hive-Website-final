@@ -362,13 +362,27 @@ export default function OverviewPageClient() {
                       <UserPlus className="w-4 h-4 inline mr-2" />
                       Joined
                     </button>
-                  ) : event.status === 'ongoing' ? (
+                  ) : event.status === 'completed' ? (
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold text-sm cursor-not-allowed"
+                    >
+                      Event Ended
+                    </button>
+                  ) : event.status === 'ongoing' || event.status === 'in_progress' ? (
                     <button
                       onClick={isAdmin ? () => handleEndEvent(event.id) : undefined}
                       disabled={!isAdmin || updatingEventId === event.id}
                       className={`px-4 py-2 rounded-lg font-semibold text-sm ${isAdmin ? 'bg-gray-800 text-white hover:bg-black transition-colors' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
                     >
                       {isAdmin ? (updatingEventId === event.id ? 'Ending...' : 'End Event') : 'Event Started'}
+                    </button>
+                  ) : event.signup_count >= event.max_attendees ? (
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold text-sm cursor-not-allowed"
+                    >
+                      Event Full
                     </button>
                   ) : (
                     <button
@@ -386,7 +400,7 @@ export default function OverviewPageClient() {
                       )}
                     </button>
                   )}
-                  {isAdmin && event.status === 'upcoming' && (
+                  {isAdmin && (event.status === 'published' || event.status === 'upcoming') && (
                     <button
                       onClick={() => handleStartEvent(event.id)}
                       disabled={updatingEventId === event.id}

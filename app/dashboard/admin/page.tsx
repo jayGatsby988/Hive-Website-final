@@ -24,8 +24,8 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react'
-import { HiveCard } from '@/components/common/HiveCard'
-import { HiveButton } from '@/components/common/HiveButton'
+import HiveCard from '@/components/common/HiveCard'
+import HiveButton from '@/components/common/HiveButton'
 
 interface AdminStats {
   totalMembers: number

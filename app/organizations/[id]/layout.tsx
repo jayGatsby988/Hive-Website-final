@@ -16,6 +16,9 @@ import {
   TrendingUp,
   Hexagon,
   Plus,
+  BarChart3,
+  UserCircle,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -83,6 +86,9 @@ export default function OrganizationLayout({ children }: { children: React.React
       items: [
         { name: 'Overview', icon: Home, path: `/organizations/${orgId}`, badge: null },
         { name: 'Events', icon: Calendar, path: `/organizations/${orgId}/events`, badge: null },
+        { name: 'Stats', icon: BarChart3, path: `/organizations/${orgId}/stats`, badge: null },
+        // Only show "My Roles" to non-admin members
+        ...(!isAdmin ? [{ name: 'My Roles', icon: UserCircle, path: `/organizations/${orgId}/my-roles`, badge: null }] : []),
         ...(canViewAnalytics ? [{ name: 'Analytics', icon: TrendingUp, path: `/organizations/${orgId}/analytics`, badge: null }] : []),
       ],
     },
@@ -90,12 +96,13 @@ export default function OrganizationLayout({ children }: { children: React.React
       title: 'Administration',
       items: [
         { name: 'Members', icon: Users, path: `/organizations/${orgId}/members`, badge: null },
+        { name: 'Audit Log', icon: FileText, path: `/organizations/${orgId}/audit-log`, badge: null },
         { name: 'Settings', icon: Settings, path: `/organizations/${orgId}/settings`, badge: null },
       ],
     }] : [{
-      title: 'Members',
+      title: 'Community',
       items: [
-        { name: 'All Members', icon: Users, path: `/organizations/${orgId}/members`, badge: null },
+        { name: 'Members', icon: Users, path: `/organizations/${orgId}/members`, badge: null },
       ],
     }]),
   ];
@@ -120,6 +127,10 @@ export default function OrganizationLayout({ children }: { children: React.React
         events: 'Events',
         members: 'Members',
         settings: 'Settings',
+        stats: 'Stats',
+        analytics: 'Analytics',
+        'my-roles': 'My Roles',
+        'audit-log': 'Audit Log',
       };
 
       if (pageMap[pageName]) {
