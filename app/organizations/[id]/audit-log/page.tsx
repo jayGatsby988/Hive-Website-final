@@ -40,6 +40,8 @@ const ACTION_COLORS: Record<string, string> = {
   EVENT_CREATED: 'bg-green-100 text-green-800 border-green-300',
   EVENT_UPDATED: 'bg-blue-100 text-blue-800 border-blue-300',
   EVENT_DELETED: 'bg-red-100 text-red-800 border-red-300',
+  EVENT_STARTED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  EVENT_ENDED: 'bg-gray-100 text-gray-800 border-gray-300',
   EVENT_SIGNUP: 'bg-purple-100 text-purple-800 border-purple-300',
   EVENT_CHECKIN: 'bg-teal-100 text-teal-800 border-teal-300',
   EVENT_CHECKOUT: 'bg-indigo-100 text-indigo-800 border-indigo-300',
@@ -52,6 +54,8 @@ const ACTION_LABELS: Record<string, string> = {
   EVENT_CREATED: 'Event Created',
   EVENT_UPDATED: 'Event Updated',
   EVENT_DELETED: 'Event Deleted',
+  EVENT_STARTED: 'Event Got Started',
+  EVENT_ENDED: 'Event Ended',
   EVENT_SIGNUP: 'Event Signup',
   EVENT_CHECKIN: 'Checked In',
   EVENT_CHECKOUT: 'Checked Out',
@@ -146,18 +150,50 @@ export default function AuditLogPage() {
     })
   }
 
+  const getEffectiveAction = (log: AuditLog): string => {
+    // Check if status changed to 'in_progress' in EVENT_UPDATED logs
+    if (log.action === 'EVENT_UPDATED' && log.details?.changes?.status) {
+      const statusChange = log.details.changes.status
+      if (statusChange.new === 'in_progress' && statusChange.old !== 'in_progress') {
+        return 'EVENT_STARTED'
+      }
+      // Check if status changed to 'completed' in EVENT_UPDATED logs
+      if (statusChange.new === 'completed' && statusChange.old !== 'completed') {
+        return 'EVENT_ENDED'
+      }
+    }
+    return log.action
+  }
+
   const getActionDescription = (log: AuditLog) => {
     const actionLabel = ACTION_LABELS[log.action] || log.action
     const userName = log.user_name || 'Unknown User'
     const entityName = log.entity_name || 'Unknown'
+    const adminName = log.details?.admin || userName
+
+    // Check if status changed to 'in_progress' in EVENT_UPDATED logs
+    if (log.action === 'EVENT_UPDATED' && log.details?.changes?.status) {
+      const statusChange = log.details.changes.status
+      if (statusChange.new === 'in_progress' && statusChange.old !== 'in_progress') {
+        return `${adminName} got started event "${entityName}"`
+      }
+      // Check if status changed to 'completed' in EVENT_UPDATED logs
+      if (statusChange.new === 'completed' && statusChange.old !== 'completed') {
+        return `${adminName} ended event "${entityName}"`
+      }
+    }
 
     switch (log.action) {
       case 'EVENT_CREATED':
         return `${userName} created event "${entityName}"`
       case 'EVENT_UPDATED':
-        return `${userName} updated event "${entityName}"`
+        return `${adminName} updated event "${entityName}"`
       case 'EVENT_DELETED':
         return `${userName} deleted event "${entityName}"`
+      case 'EVENT_STARTED':
+        return `${adminName} got started event "${entityName}"`
+      case 'EVENT_ENDED':
+        return `${adminName} ended event "${entityName}"`
       case 'EVENT_SIGNUP':
         return `${userName} signed up for "${entityName}"`
       case 'EVENT_CHECKIN':
@@ -354,9 +390,14 @@ export default function AuditLogPage() {
 
                     {/* Action Badge */}
                     <div className="min-w-[120px]">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-800 border-gray-300'}`}>
-                        {ACTION_LABELS[log.action] || log.action}
-                      </span>
+                      {(() => {
+                        const effectiveAction = getEffectiveAction(log)
+                        return (
+                          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${ACTION_COLORS[effectiveAction] || 'bg-gray-100 text-gray-800 border-gray-300'}`}>
+                            {ACTION_LABELS[effectiveAction] || effectiveAction}
+                          </span>
+                        )
+                      })()}
                     </div>
 
                     {/* Description */}

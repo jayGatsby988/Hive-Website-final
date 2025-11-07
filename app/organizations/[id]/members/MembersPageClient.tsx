@@ -5,7 +5,9 @@ import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { ProtectedRoute } from '@/components/common/ProtectedRoute'
-import { organizationService, userService } from '@/lib/services'
+import { organizationService, userService, eventService, roleService } from '@/lib/services'
+import { supabase } from '@/lib/supabase'
+import { OrganizationMember } from '@/lib/types'
 import {
   Users,
   Search,
@@ -30,9 +32,9 @@ import {
   Upload,
   RefreshCw
 } from 'lucide-react'
-import { HiveCard } from '@/components/common/HiveCard'
-import { HiveButton } from '@/components/common/HiveButton'
-import { HiveInput } from '@/components/common/HiveInput'
+import HiveCard from '@/components/common/HiveCard'
+import HiveButton from '@/components/common/HiveButton'
+import HiveInput from '@/components/common/HiveInput'
 
 interface Member extends OrganizationMember {
   user?: {
@@ -46,6 +48,7 @@ interface Member extends OrganizationMember {
   volunteer_hours?: number
   events_attended?: number
   last_active?: string
+  roles?: string[] // Array of role names from user_organization_roles
 }
 
 interface MemberFilters {
@@ -58,7 +61,7 @@ interface MemberFilters {
 
 export default function MembersPageClient() {
   const { user } = useAuth()
-  const { selectedOrg, isAdmin } = useOrganization()
+  const { selectedOrg, isAdmin, canManageMembers } = useOrganization()
   const [members, setMembers] = useState<Member[]>([])
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,41 +91,167 @@ export default function MembersPageClient() {
     try {
       setLoading(true)
       
-      const [membersData, volunteerHours] = await Promise.all([
-        organizationService.getMembers(selectedOrg.id),
-        userService.getVolunteerHours(selectedOrg.id)
-      ])
+      // Fetch members directly from Supabase
+      // Try with join first, then fallback to separate query if join fails
+      let membersData: any[] = []
+      let membersError: any = null
+      
+      // First try with join
+      const { data: joinedData, error: joinError } = await supabase
+        .from('organization_members')
+        .select(`
+          id,
+          organization_id,
+          user_id,
+          role,
+          joined_at,
+          is_active,
+          users:user_id (
+            id,
+            name,
+            email,
+            avatar_url,
+            phone,
+            created_at
+          )
+        `)
+        .eq('organization_id', selectedOrg.id)
+        .order('joined_at', { ascending: false })
 
-      // Enhance members with user data and stats
+      if (joinError) {
+        console.warn('Join query failed, trying separate query:', joinError)
+        // Fallback: fetch members without join
+        const { data: membersOnly, error: membersOnlyError } = await supabase
+          .from('organization_members')
+          .select('id, organization_id, user_id, role, joined_at, is_active')
+          .eq('organization_id', selectedOrg.id)
+          .order('joined_at', { ascending: false })
+        
+        if (membersOnlyError) {
+          console.error('Error fetching members:', membersOnlyError)
+          throw membersOnlyError
+        }
+        membersData = membersOnly || []
+        membersError = membersOnlyError
+      } else {
+        membersData = joinedData || []
+      }
+
+      if (!membersData || membersData.length === 0) {
+        console.log('No members found for organization:', selectedOrg.id)
+        setMembers([])
+        setLoading(false)
+        return
+      }
+
+      console.log('Found members:', membersData.length, membersData)
+
+      // Get volunteer hours for all members
+      let volunteerHours: any[] = []
+      try {
+        const hoursData = await userService.getVolunteerHours(selectedOrg.id)
+        volunteerHours = hoursData || []
+      } catch (error) {
+        console.error('Error fetching volunteer hours:', error)
+      }
+
+      // Enhance members with stats
       const enhancedMembers: Member[] = await Promise.all(
-        membersData.map(async (member) => {
-          // Get user details
-          const { data: userData } = await userService.getById(member.user_id)
+        membersData.map(async (member: any) => {
+          // User data might be in member.users (array) or member.users (object)
+          let userData = null
+          if (member.users) {
+            // Handle array response
+            if (Array.isArray(member.users) && member.users.length > 0) {
+              userData = member.users[0]
+            } else if (typeof member.users === 'object') {
+              userData = member.users
+            }
+          }
+          
+          // If user data not found, fetch it separately
+          if (!userData && member.user_id) {
+            try {
+              const { data: fetchedUser } = await supabase
+                .from('users')
+                .select('id, name, email, avatar_url, phone, created_at')
+                .eq('id', member.user_id)
+                .single()
+              userData = fetchedUser
+            } catch (error) {
+              console.error('Error fetching user data:', error)
+            }
+          }
           
           // Calculate volunteer hours for this member
           const memberHours = volunteerHours
             .filter(hours => hours.user_id === member.user_id)
             .reduce((sum, hours) => sum + hours.hours, 0)
 
-          // Get events attended count
-          const { data: eventsAttended } = await eventService.getUserEvents(member.user_id)
-          const attendedCount = eventsAttended?.filter(event => 
-            event.organization_id === selectedOrg.id
-          ).length || 0
+          // Get events attended count from event_attendees
+          let attendedCount = 0
+          try {
+            const { data: eventsAttended } = await supabase
+              .from('event_attendees')
+              .select('event_id')
+              .eq('user_id', member.user_id)
+            
+            if (eventsAttended && eventsAttended.length > 0) {
+              // Get events that belong to this organization
+              const eventIds = eventsAttended.map((ea: any) => ea.event_id)
+              const { data: orgEvents } = await supabase
+                .from('events')
+                .select('id')
+                .in('id', eventIds)
+                .eq('organization_id', selectedOrg.id)
+              attendedCount = orgEvents?.length || 0
+            }
+          } catch (error) {
+            console.error('Error fetching events attended:', error)
+          }
+
+          // Get user's roles from user_organization_roles
+          let userRoles: string[] = []
+          try {
+            const rolesData = await roleService.getUserRoles(member.user_id, selectedOrg.id)
+            userRoles = rolesData.map((r: any) => r.role_name) || []
+          } catch (error) {
+            console.error('Error fetching user roles:', error)
+          }
 
           return {
-            ...member,
-            user: userData,
+            id: member.id,
+            organization_id: member.organization_id,
+            user_id: member.user_id,
+            role: member.role, // Keep the organization_members role (admin/member)
+            joined_at: member.joined_at,
+            is_active: member.is_active !== undefined ? member.is_active : true,
+            user: userData ? {
+              id: userData.id,
+              name: userData.name || 'Unknown User',
+              email: userData.email || '',
+              avatar_url: userData.avatar_url,
+              phone: userData.phone,
+              created_at: userData.created_at || new Date().toISOString()
+            } : {
+              id: member.user_id,
+              name: 'Unknown User',
+              email: '',
+              created_at: new Date().toISOString()
+            },
             volunteer_hours: memberHours,
             events_attended: attendedCount,
-            last_active: member.joined_at // Could be enhanced with actual last activity
+            last_active: member.joined_at,
+            roles: userRoles // Add the actual role names
           }
         })
       )
 
+      console.log('Loaded members:', enhancedMembers.length, enhancedMembers)
       setMembers(enhancedMembers)
     } catch (error) {
       console.error('Error loading members:', error)
+      setMembers([])
     } finally {
       setLoading(false)
     }
@@ -187,7 +316,7 @@ export default function MembersPageClient() {
     setFilteredMembers(filtered)
   }
 
-  const handleRoleChange = async (memberId: string, newRole: 'admin' | 'member') => {
+  const handleRoleChange = async (memberId: string, newRole: 'admin' | 'member' | 'moderator') => {
     if (!selectedOrg) return
 
     try {
@@ -494,14 +623,17 @@ export default function MembersPageClient() {
                   >
                     Deactivate
                   </HiveButton>
-                  <HiveButton
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkAction('remove')}
-                    className="text-red-600 border-red-300 hover:bg-red-50"
-                  >
-                    Remove
-                  </HiveButton>
+                  {/* Only show Remove button to admins who can manage members */}
+                  {canManageMembers && (
+                    <HiveButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkAction('remove')}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      Remove
+                    </HiveButton>
+                  )}
                   <HiveButton
                     variant="outline"
                     size="sm"
@@ -581,15 +713,38 @@ export default function MembersPageClient() {
             </div>
                     </td>
                     <td className="py-4 px-4">
-                      <select
-                        value={member.role}
-                        onChange={(e) => handleRoleChange(member.id, e.target.value as 'admin' | 'member')}
-                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        disabled={member.user_id === user?.id} // Can't change own role
-                      >
-                        <option value="member">Member</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      <div className="flex flex-col gap-2">
+                        {/* Organization role (admin/member) */}
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value as 'admin' | 'member' | 'moderator')}
+                          className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled={member.user_id === user?.id} // Can't change own role
+                        >
+                          <option value="member">Member</option>
+                          <option value="admin">Admin</option>
+                          {/* Only show moderator option for existing moderators or to admins */}
+                          {(member.role === 'moderator' || isAdmin) && (
+                            <option value="moderator">Moderator (Private)</option>
+                          )}
+                        </select>
+                        {/* Display actual role names from user_organization_roles */}
+                        {member.roles && member.roles.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {member.roles.map((roleName, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-300"
+                              >
+                                {roleName}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {(!member.roles || member.roles.length === 0) && (
+                          <span className="text-xs text-gray-400 italic">No roles assigned</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
@@ -624,19 +779,22 @@ export default function MembersPageClient() {
                         >
                           {member.is_active ? 'Deactivate' : 'Activate'}
                         </HiveButton>
-                        <HiveButton
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to remove this member?')) {
-                              handleBulkAction('remove')
-                              setSelectedMembers(new Set([member.id]))
-                            }
-                          }}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </HiveButton>
+                        {/* Only show Remove button to admins who can manage members */}
+                        {canManageMembers && (
+                          <HiveButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to remove this member?')) {
+                                handleBulkAction('remove')
+                                setSelectedMembers(new Set([member.id]))
+                              }
+                            }}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </HiveButton>
+                        )}
         </div>
                     </td>
                   </motion.tr>

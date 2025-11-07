@@ -1,8 +1,41 @@
--- COMPLETE AUDIT LOG SYSTEM FOR ADMINS
--- Tracks every action with timestamps and user names
+-- COMPLETE AUDIT LOG SYSTEM FOR ADMINS (CLEAN INSTALL)
+-- Drops existing objects first, then creates fresh
 
 -- ============================================
--- 1. Create audit_log table
+-- 0. Drop existing objects (safe to run multiple times)
+-- ============================================
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "admins_can_view_audit_logs" ON audit_log;
+DROP POLICY IF EXISTS "system_can_insert_audit_logs" ON audit_log;
+
+-- Drop existing triggers
+DROP TRIGGER IF EXISTS trigger_audit_event_created ON events;
+DROP TRIGGER IF EXISTS trigger_audit_event_updated ON events;
+DROP TRIGGER IF EXISTS trigger_audit_event_deleted ON events;
+DROP TRIGGER IF EXISTS trigger_audit_member_joined ON organization_members;
+DROP TRIGGER IF EXISTS trigger_audit_member_role_changed ON organization_members;
+DROP TRIGGER IF EXISTS trigger_audit_event_signup ON event_attendees;
+DROP TRIGGER IF EXISTS trigger_audit_checkin ON event_checkins;
+DROP TRIGGER IF EXISTS trigger_audit_role_assigned ON user_organization_roles;
+
+-- Drop existing functions
+DROP FUNCTION IF EXISTS audit_event_created();
+DROP FUNCTION IF EXISTS audit_event_updated();
+DROP FUNCTION IF EXISTS audit_event_deleted();
+DROP FUNCTION IF EXISTS audit_member_joined();
+DROP FUNCTION IF EXISTS audit_member_role_changed();
+DROP FUNCTION IF EXISTS audit_event_signup();
+DROP FUNCTION IF EXISTS audit_checkin();
+DROP FUNCTION IF EXISTS audit_role_assigned();
+DROP FUNCTION IF EXISTS log_audit_action(UUID, UUID, TEXT, TEXT, UUID, TEXT, JSONB);
+
+-- Note: We don't drop the audit_log table to preserve existing logs
+-- If you want to start fresh, uncomment this line:
+-- DROP TABLE IF EXISTS audit_log CASCADE;
+
+-- ============================================
+-- 1. Create audit_log table (if not exists)
 -- ============================================
 CREATE TABLE IF NOT EXISTS audit_log (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -11,7 +44,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   user_name TEXT NOT NULL,
   user_email TEXT,
   action TEXT NOT NULL,
-  entity_type TEXT NOT NULL, -- 'event', 'member', 'role', 'organization', etc.
+  entity_type TEXT NOT NULL,
   entity_id UUID,
   entity_name TEXT,
   details JSONB,
@@ -148,7 +181,7 @@ AFTER INSERT ON events
 FOR EACH ROW
 EXECUTE FUNCTION audit_event_created();
 
--- Log event updates
+-- Log event updates (including start/end)
 CREATE OR REPLACE FUNCTION audit_event_updated()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -385,7 +418,7 @@ AFTER INSERT ON event_attendees
 FOR EACH ROW
 EXECUTE FUNCTION audit_event_signup();
 
--- Log check-ins
+-- Log check-ins and check-outs
 CREATE OR REPLACE FUNCTION audit_checkin()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -474,12 +507,15 @@ BEGIN
   RAISE NOTICE '  - log_audit_action() function';
   RAISE NOTICE '  - Automatic triggers for:';
   RAISE NOTICE '    • Event creation, updates, deletion';
+  RAISE NOTICE '    • Event started and ended';
   RAISE NOTICE '    • Member joins, role changes';
   RAISE NOTICE '    • Event signups';
   RAISE NOTICE '    • Check-ins and check-outs';
   RAISE NOTICE '    • Role assignments';
   RAISE NOTICE '';
   RAISE NOTICE 'Only admins can view audit logs!';
+  RAISE NOTICE '';
+  RAISE NOTICE 'Refresh your browser and click "Audit Log" in the sidebar!';
   RAISE NOTICE '';
 END $$;
 

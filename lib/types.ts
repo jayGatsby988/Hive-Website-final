@@ -36,7 +36,7 @@ export interface OrganizationMember {
   id: string
   organization_id: string
   user_id: string
-  role: 'admin' | 'member'
+  role: 'admin' | 'member' | 'moderator'
   joined_at: string
   is_active: boolean
 }

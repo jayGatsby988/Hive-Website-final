@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import HiveButton from '@/components/common/HiveButton'
 import HiveInput from '@/components/common/HiveInput'
-import ProtectedRoute from '@/components/common/ProtectedRoute'
+import { ProtectedRoute } from '@/components/common/ProtectedRoute'
 import { organizationService } from '@/lib/services'
 import { useAuth } from '@/contexts/AuthContext'
 

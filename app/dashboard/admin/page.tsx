@@ -93,7 +93,7 @@ export default function AdminDashboard() {
         }).length / members.length) * 100) : 0
 
       const eventParticipation = events.length > 0 ?
-        Math.round((events.reduce((sum, event) => sum + (event.attendee_count || 0), 0) / events.length)) : 0
+        Math.round((events.reduce((sum, event) => sum + (event.signup_count || 0), 0) / events.length)) : 0
 
       setStats({
         totalMembers: members.length,
@@ -128,11 +128,13 @@ export default function AdminDashboard() {
 
       // Recent members
       members.slice(0, 3).forEach(member => {
+        // Get user name from joined users data if available
+        const userName = (member as any).users?.name || (member as any).users?.[0]?.name || 'Unknown User'
         activities.push({
           id: `member-${member.id}`,
           type: 'member_joined',
           title: 'New Member Joined',
-          description: member.name || member.email,
+          description: userName,
           timestamp: member.joined_at
         })
       })

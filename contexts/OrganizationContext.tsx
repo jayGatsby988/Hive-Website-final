@@ -103,10 +103,14 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   }, [selectedOrg, organizations, user])
 
   // Computed permissions
-  const isAdmin = userRole === 'admin' || user?.role === 'super_admin'
-  const canCreateEvents = userPermissions.includes('create_events')
-  const canManageMembers = userPermissions.includes('manage_members')
-  const canViewAnalytics = userPermissions.includes('view_analytics')
+  // Moderators get admin-like permissions except member management
+  const isAdmin = userRole === 'admin' || userRole === 'moderator' || user?.role === 'super_admin'
+  const isModerator = userRole === 'moderator'
+  
+  // Moderators can create events, but cannot manage members
+  const canCreateEvents = userPermissions.includes('create_events') || isAdmin
+  const canManageMembers = userPermissions.includes('manage_members') || (userRole === 'admin' && !isModerator)
+  const canViewAnalytics = userPermissions.includes('view_analytics') || isAdmin
 
   const value: OrganizationContextType = {
     selectedOrg,

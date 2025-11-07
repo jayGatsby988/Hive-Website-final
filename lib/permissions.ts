@@ -14,7 +14,7 @@ export type Permission =
   | 'manage_resources'
   | 'view_volunteer_hours'
 
-export type Role = 'super_admin' | 'admin' | 'member' | 'volunteer'
+export type Role = 'super_admin' | 'admin' | 'moderator' | 'member' | 'volunteer'
 
 export interface RolePermissions {
   [key: string]: Permission[]
@@ -47,6 +47,17 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     'view_volunteer_hours',
     'manage_resources'
   ],
+  moderator: [
+    'create_events',
+    'edit_events',
+    'delete_events',
+    'view_analytics',
+    'manage_settings',
+    'create_announcements',
+    'view_volunteer_hours',
+    'manage_resources'
+    // NOTE: No 'manage_members' permission
+  ],
   member: [
     'view_analytics'
   ],
@@ -67,6 +78,17 @@ export const ORG_ROLE_PERMISSIONS: RolePermissions = {
     'create_announcements',
     'view_volunteer_hours',
     'manage_resources'
+  ],
+  moderator: [
+    'create_events',
+    'edit_events',
+    'delete_events',
+    'view_analytics',
+    'manage_settings',
+    'create_announcements',
+    'view_volunteer_hours',
+    'manage_resources'
+    // NOTE: No 'manage_members' permission
   ],
   member: [
     'view_analytics'
@@ -102,7 +124,7 @@ export function hasPermission(
  * Check if user is admin in an organization
  */
 export function isOrgAdmin(userOrgRole?: string): boolean {
-  return userOrgRole === 'admin'
+  return userOrgRole === 'admin' || userOrgRole === 'moderator'
 }
 
 /**
@@ -139,6 +161,7 @@ export function canViewAnalytics(user: User | null, userOrgRole?: string): boole
 export function getUserEffectiveRole(user: User | null, userOrgRole?: string): Role {
   if (user?.role === 'super_admin') return 'super_admin'
   if (userOrgRole === 'admin') return 'admin'
+  if (userOrgRole === 'moderator') return 'moderator'
   if (userOrgRole === 'member') return 'member'
   return user?.role || 'volunteer'
 }

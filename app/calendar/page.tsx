@@ -146,13 +146,13 @@ export default function CalendarPage() {
           </div>
           <div className="flex gap-2">
             <HiveButton
-              variant={viewMode === 'month' ? 'default' : 'outline'}
+              variant={viewMode === 'month' ? 'primary' : 'outline'}
               onClick={() => setViewMode('month')}
             >
               Month
             </HiveButton>
             <HiveButton
-              variant={viewMode === 'week' ? 'default' : 'outline'}
+              variant={viewMode === 'week' ? 'primary' : 'outline'}
               onClick={() => setViewMode('week')}
             >
               Week
