@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -39,13 +39,7 @@ export default function OverviewPageClient() {
   const [userJoinedEvents, setUserJoinedEvents] = useState<Set<string>>(new Set());
   const [updatingEventId, setUpdatingEventId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (selectedOrg) {
-      loadStats();
-    }
-  }, [selectedOrg, user]);
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!selectedOrg) return;
 
     try {
@@ -79,7 +73,7 @@ export default function OverviewPageClient() {
           .eq('user_id', user.id);
         
         if (userAttendances) {
-          setUserJoinedEvents(new Set(userAttendances.map(a => a.event_id)));
+          setUserJoinedEvents(new Set(userAttendances.map((a: any) => a.event_id)));
         }
       }
     } catch (error) {
@@ -87,7 +81,13 @@ export default function OverviewPageClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedOrg, user]);
+
+  useEffect(() => {
+    if (selectedOrg) {
+      loadStats();
+    }
+  }, [selectedOrg, loadStats]);
 
   const handleSignUp = async (eventId: string) => {
     if (!user) {
@@ -154,8 +154,8 @@ export default function OverviewPageClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{selectedOrg.name}</h1>
-        <p className="text-gray-600 mt-1">{selectedOrg.description || 'Community Organization'}</p>
+        <h1 className="text-3xl font-bold text-gray-900">{selectedOrg?.name}</h1>
+        <p className="text-gray-600 mt-1">{selectedOrg?.description || 'Community Organization'}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -241,7 +241,7 @@ export default function OverviewPageClient() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <motion.button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/events`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events`)}
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all text-left"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -252,7 +252,7 @@ export default function OverviewPageClient() {
           </motion.button>
 
           <motion.button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/members`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/members`)}
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all text-left"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -265,7 +265,7 @@ export default function OverviewPageClient() {
           {/* Admin-only actions */}
           {canCreateEvents && (
             <motion.button
-              onClick={() => router.push(`/organizations/${selectedOrg.id}/events/create`)}
+              onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events/create`)}
               className="relative p-4 rounded-xl border-2 border-blue-500 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all text-left group overflow-hidden"
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -288,7 +288,7 @@ export default function OverviewPageClient() {
 
           {isAdmin && (
             <motion.button
-              onClick={() => router.push(`/organizations/${selectedOrg.id}/analytics`)}
+              onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/analytics`)}
               className="p-4 rounded-xl border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all text-left"
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -301,7 +301,7 @@ export default function OverviewPageClient() {
 
           {isAdmin && (
             <motion.button
-              onClick={() => router.push(`/organizations/${selectedOrg.id}/settings`)}
+              onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/settings`)}
               className="p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -324,7 +324,7 @@ export default function OverviewPageClient() {
               <h2 className="text-xl font-bold text-gray-900">Upcoming Events</h2>
             </div>
             <button
-              onClick={() => router.push(`/organizations/${selectedOrg.id}/events`)}
+              onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events`)}
               className="text-sm text-yellow-600 hover:text-yellow-700 font-semibold"
             >
               View All
@@ -417,20 +417,20 @@ export default function OverviewPageClient() {
       )}
 
       <div className="bg-gradient-to-br from-yellow-50 to-white rounded-xl shadow-sm border border-yellow-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-3">Welcome to {selectedOrg.name}!</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Welcome to {selectedOrg?.name}!</h2>
         <p className="text-gray-700 mb-4">
-          You're now a {selectedOrg.role} of this organization. Use the quick actions above or the sidebar to navigate through different sections.
+          You&apos;re now a {selectedOrg?.role || selectedOrg?.userRole || 'member'} of this organization. Use the quick actions above or the sidebar to navigate through different sections.
         </p>
         <div className="flex gap-3">
           <button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/events`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events`)}
             className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-semibold"
           >
             Browse Events
           </button>
-          {selectedOrg.role === 'admin' && (
+          {isAdmin && (
             <button
-              onClick={() => router.push(`/organizations/${selectedOrg.id}/settings`)}
+              onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/settings`)}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold flex items-center gap-2"
             >
               <Settings className="w-4 h-4" />

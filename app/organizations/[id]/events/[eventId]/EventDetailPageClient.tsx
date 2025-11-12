@@ -10,6 +10,7 @@ import { Event as SupabaseEvent } from '@/lib/types';
 import HiveCard from '@/components/common/HiveCard';
 import HiveButton from '@/components/common/HiveButton';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
   ArrowLeft,
   Calendar,
@@ -631,8 +632,13 @@ export default function EventDetailPageClient() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-hiveYellow rounded-lg flex items-center justify-center">
                       {attendee.user?.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={attendee.user.avatar_url} alt={attendee.user.name} className="w-full h-full rounded-lg object-cover" />
+                        <Image
+                          src={attendee.user.avatar_url}
+                          alt={attendee.user.name || 'Attendee avatar'}
+                          width={40}
+                          height={40}
+                          className="w-full h-full rounded-lg object-cover"
+                        />
                       ) : (
                         <span className="text-lg font-bold text-hiveGray-dark">
                           {(attendee.user?.name?.charAt(0)) || (attendee.user_id?.charAt(0)) || 'U'}
@@ -699,7 +705,7 @@ export default function EventDetailPageClient() {
                 <span className="font-semibold text-hiveGray-dark">{new Date(event.updated_at).toLocaleString()}</span>
               </div>
             )}
-            {selectedOrg?.role === 'admin' && (
+            {isAdmin && (
               <div className="pt-3 mt-3 border-t border-hiveGray-light">
                 {event.status === 'published' && (
                   <HiveButton onClick={handleStart} disabled={updating} className="w-full">

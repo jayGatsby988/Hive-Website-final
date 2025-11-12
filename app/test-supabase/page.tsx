@@ -99,7 +99,7 @@ export default function SupabaseTest() {
           <h2 className="text-xl font-semibold mb-4">Test Results</h2>
           <div className="space-y-1">
             {testResults.length === 0 ? (
-              <p className="text-gray-500">Click "Run Connection Tests" to see results</p>
+              <p className="text-gray-500">Click &quot;Run Connection Tests&quot; to see results</p>
             ) : (
               testResults.map((result, index) => (
                 <div key={index} className="font-mono text-sm">

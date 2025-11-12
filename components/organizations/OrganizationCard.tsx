@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Users, MapPin, Calendar, ChevronRight } from 'lucide-react';
 import HiveButton from '../common/HiveButton';
 
@@ -41,7 +42,13 @@ export default function OrganizationCard({
     >
       <div className="h-32 bg-gradient-to-br from-hiveYellow/20 to-hiveYellow/5 flex items-center justify-center relative overflow-hidden">
         {logo ? (
-          <img src={logo} alt={name} className="w-20 h-20 object-contain" />
+          <Image
+            src={logo}
+            alt={name}
+            width={80}
+            height={80}
+            className="w-20 h-20 object-contain"
+          />
         ) : (
           <div className="w-20 h-20 bg-hiveYellow rounded-full flex items-center justify-center">
             <span className="text-3xl font-bold text-hiveGray-dark">

@@ -8,7 +8,7 @@ import {
   Search,
   MoreVertical,
   FileText,
-  Image,
+  Image as ImageIcon,
   File,
   Download,
   Trash2,
@@ -64,7 +64,7 @@ export default function ResourcesPageClient() {
       case 'document':
         return FileText;
       case 'image':
-        return Image;
+        return ImageIcon;
       case 'folder':
         return Folder;
       default:
@@ -311,7 +311,7 @@ export default function ResourcesPageClient() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Image className="w-5 h-5 text-green-600" />
+              <ImageIcon className="w-5 h-5 text-green-600" />
             </div>
             <h3 className="font-semibold text-gray-900">Images</h3>
           </div>

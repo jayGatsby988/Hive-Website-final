@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -99,13 +99,7 @@ export default function AdminAnalytics() {
   const [timeRange, setTimeRange] = useState<TimeRange>(TIME_RANGES[1]) // 30 days default
   const [viewMode, setViewMode] = useState<'overview' | 'detailed'>('overview')
 
-  useEffect(() => {
-    if (selectedOrg && isAdmin) {
-      loadAnalytics()
-    }
-  }, [selectedOrg, isAdmin, timeRange])
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     if (!selectedOrg) return
 
     try {
@@ -196,9 +190,10 @@ export default function AdminAnalytics() {
           })
       )
 
-      // Event categories
+      // Event categories (using event_type instead of category)
       const categoryCounts = events.reduce((acc, event) => {
-        acc[event.category] = (acc[event.category] || 0) + 1
+        const category = (event as any).category || event.event_type || 'Other'
+        acc[category] = (acc[category] || 0) + 1
         return acc
       }, {} as Record<string, number>)
 
@@ -291,7 +286,13 @@ export default function AdminAnalytics() {
     } finally {
       setLoading(false)
     }
+  }, [selectedOrg, timeRange])
+
+  useEffect(() => {
+    if (selectedOrg && isAdmin) {
+      loadAnalytics()
   }
+  }, [selectedOrg, isAdmin, loadAnalytics])
 
   const exportAnalytics = () => {
     if (!analyticsData) return

@@ -4,7 +4,7 @@
 // ============================================
 
 // This uses the SAME tables as the website for proper sync
-import { supabase } from './supabase'; // Your supabase client
+import { supabase } from './lib/supabase'; // Your supabase client
 
 export async function selfCheckIn(eventId: string, userId: string) {
   console.log('[Mobile CheckIn] Starting check-in:', { eventId, userId });

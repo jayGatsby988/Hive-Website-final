@@ -321,3 +321,6 @@ Just run `SETUP_AUDIT_LOG.sql` in Supabase and all 11 actions will be tracked au
 
 **Every admin action, every member action, everything!** 🎉
 
+
+
+

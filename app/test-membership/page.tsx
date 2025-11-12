@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -11,13 +11,7 @@ export default function TestMembershipPage() {
   const [memberships, setMemberships] = useState<any[]>([]);
   const [dbOrgs, setDbOrgs] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      checkMemberships();
-    }
-  }, [user]);
-
-  const checkMemberships = async () => {
+  const checkMemberships = useCallback(async () => {
     if (!user) return;
 
     // Check raw memberships
@@ -36,7 +30,13 @@ export default function TestMembershipPage() {
 
     console.log('All organizations:', orgs);
     setDbOrgs(orgs || []);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      checkMemberships();
+    }
+  }, [user, checkMemberships]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">

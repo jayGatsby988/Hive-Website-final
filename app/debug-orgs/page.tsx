@@ -33,18 +33,18 @@ export default function DebugOrgsPage() {
       }
 
       console.log('✅ Direct query successful:', directData);
-      setDebugInfo(prev => ({ ...prev, directQuery: { success: true, count: directData?.length || 0 } }));
+      setDebugInfo((prev: any) => ({ ...prev, directQuery: { success: true, count: directData?.length || 0 } }));
 
       // Test 2: Organization service
       console.log('🔍 Testing organization service...');
       const serviceData = await organizationService.getAll();
       console.log('✅ Service query successful:', serviceData);
       setOrganizations(serviceData);
-      setDebugInfo(prev => ({ ...prev, serviceQuery: { success: true, count: serviceData?.length || 0 } }));
+      setDebugInfo((prev: any) => ({ ...prev, serviceQuery: { success: true, count: serviceData?.length || 0 } }));
 
       // Test 3: Check if user is logged in
       const { data: { session } } = await supabase.auth.getSession();
-      setDebugInfo(prev => ({ 
+      setDebugInfo((prev: any) => ({ 
         ...prev, 
         auth: { 
           loggedIn: !!session, 

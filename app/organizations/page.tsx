@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Key, CheckCircle, XCircle, Users, Calendar, Building2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import HiveButton from '@/components/common/HiveButton';
 import HiveInput from '@/components/common/HiveInput';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
@@ -27,11 +28,7 @@ export default function OrganizationsPage() {
   const [myOrganizations, setMyOrganizations] = useState<Organization[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
 
-  useEffect(() => {
-    loadMyOrganizations();
-  }, [user]);
-
-  const loadMyOrganizations = async () => {
+  const loadMyOrganizations = useCallback(async () => {
     if (!user) {
       setLoadingOrgs(false);
       return;
@@ -46,7 +43,11 @@ export default function OrganizationsPage() {
     } finally {
       setLoadingOrgs(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadMyOrganizations();
+  }, [loadMyOrganizations]);
 
   const handleJoinWithCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +158,7 @@ export default function OrganizationsPage() {
               </h1>
               <p className="text-lg text-hiveGray">
                 {myOrganizations.length > 0 
-                  ? `You're a member of ${myOrganizations.length} organization${myOrganizations.length > 1 ? 's' : ''}`
+                  ? `You&apos;re a member of ${myOrganizations.length} organization${myOrganizations.length > 1 ? 's' : ''}`
                   : 'Join an organization to get started'}
               </p>
             </div>
@@ -200,7 +201,7 @@ export default function OrganizationsPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-hiveGray-dark">Join with Code</h2>
-                  <p className="text-hiveGray">Enter your organization's join code</p>
+                  <p className="text-hiveGray">Enter your organization&apos;s join code</p>
                 </div>
               </div>
 
@@ -274,7 +275,13 @@ export default function OrganizationsPage() {
                 >
                   <div className="h-32 bg-gradient-to-br from-hiveYellow/20 to-hiveYellow/5 flex items-center justify-center relative overflow-hidden">
                     {org.logo_url ? (
-                      <img src={org.logo_url} alt={org.name} className="w-20 h-20 object-contain" />
+                      <Image
+                        src={org.logo_url}
+                        alt={org.name}
+                        width={80}
+                        height={80}
+                        className="w-20 h-20 object-contain"
+                      />
                     ) : (
                       <div className="w-20 h-20 bg-hiveYellow rounded-full flex items-center justify-center">
                         <span className="text-3xl font-bold text-hiveGray-dark">
@@ -284,7 +291,7 @@ export default function OrganizationsPage() {
                     )}
                     <div className="absolute top-3 right-3">
                       <span className="px-3 py-1 bg-hiveWhite rounded-full text-xs font-semibold text-hiveYellow-dark">
-                        {(org as any).userRole === 'admin' ? 'Admin' : 'Member'}
+                        {(org as any).userRole === 'admin' ? 'Admin' : (org as any).userRole === 'moderator' ? 'Moderator' : 'Member'}
                       </span>
                     </div>
                   </div>
@@ -423,8 +430,8 @@ export default function OrganizationsPage() {
               <ul className="space-y-2 text-sm text-blue-800">
                 <li>• Ask your organization admin for the join code</li>
                 <li>• Join codes are usually 6 characters (letters and numbers)</li>
-                <li>• Make sure you're logged in before entering the code</li>
-                <li>• Contact your organization if the code doesn't work</li>
+                <li>• Make sure you&apos;re logged in before entering the code</li>
+                <li>• Contact your organization if the code doesn&apos;t work</li>
               </ul>
             </motion.div>
           )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -26,6 +26,7 @@ import HiveButton from '@/components/common/HiveButton';
 import HiveInput from '@/components/common/HiveInput';
 import HiveModal from '@/components/common/HiveModal';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface Event {
@@ -56,34 +57,7 @@ export default function EventsPageClient() {
   const [signingUp, setSigningUp] = useState<string | null>(null);
   const [updatingEventId, setUpdatingEventId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadEvents();
-  }, [selectedOrg, user]);
-
-  // Realtime updates for event changes
-  useEffect(() => {
-    if (!selectedOrg) return;
-
-    const channel = supabase
-      .channel(`events-${selectedOrg.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `organization_id=eq.${selectedOrg.id}` }, () => {
-        loadEvents();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_attendees' }, () => {
-        loadEvents();
-      })
-      .subscribe();
-
-    return () => {
-      try {
-        supabase.removeChannel(channel);
-      } catch (_) {
-        // ignore
-      }
-    };
-  }, [selectedOrg]);
-
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     if (!selectedOrg) return;
 
     try {
@@ -128,7 +102,7 @@ export default function EventsPageClient() {
           .eq('user_id', user.id);
         
         if (userAttendances) {
-          setUserJoinedEvents(new Set(userAttendances.map(a => a.event_id)));
+          setUserJoinedEvents(new Set(userAttendances.map((a: any) => a.event_id)));
         }
       }
     } catch (error) {
@@ -136,7 +110,34 @@ export default function EventsPageClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedOrg, user]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  // Realtime updates for event changes
+  useEffect(() => {
+    if (!selectedOrg) return;
+
+    const channel = supabase
+      .channel(`events-${selectedOrg.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `organization_id=eq.${selectedOrg.id}` }, () => {
+        loadEvents();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_attendees' }, () => {
+        loadEvents();
+      })
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch (_) {
+        // ignore
+      }
+    };
+  }, [selectedOrg, loadEvents]);
 
   const loadAttendees = async (eventId: string) => {
     try {
@@ -162,7 +163,7 @@ export default function EventsPageClient() {
       }
       
       // Get user IDs
-      const userIds = attendeesData.map(a => a.user_id);
+      const userIds = attendeesData.map((a: any) => a.user_id);
       console.log('User IDs:', userIds);
       
       // Fetch user details
@@ -180,9 +181,9 @@ export default function EventsPageClient() {
       }
       
       // Combine data
-      const combined = attendeesData.map(attendee => ({
+      const combined = attendeesData.map((attendee: any) => ({
         ...attendee,
-        user: usersData?.find(u => u.id === attendee.user_id)
+        user: usersData?.find((u: any) => u.id === attendee.user_id)
       }));
       
       console.log('Combined data:', combined);
@@ -297,7 +298,7 @@ export default function EventsPageClient() {
             <h1 className="text-3xl font-bold text-hiveGray-dark mb-2">Events</h1>
             <p className="text-hiveGray">Manage and track organization events</p>
           </div>
-          {selectedOrg?.role === 'admin' && (
+          {isAdmin && selectedOrg && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -532,7 +533,7 @@ export default function EventsPageClient() {
                 : 'No events have been created yet'
               }
             </p>
-            {selectedOrg?.role === 'admin' && (
+            {isAdmin && selectedOrg && (
               <Link href={`/organizations/${selectedOrg.id}/events/create`}>
                 <HiveButton>
                   <Plus className="w-5 h-5 mr-2" />
@@ -590,7 +591,13 @@ export default function EventsPageClient() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-hiveYellow rounded-lg flex items-center justify-center">
                       {attendee.user?.avatar_url ? (
-                        <img src={attendee.user.avatar_url} alt={attendee.user.name} className="w-full h-full rounded-lg object-cover" />
+                        <Image
+                          src={attendee.user.avatar_url}
+                          alt={attendee.user.name || 'Attendee avatar'}
+                          width={40}
+                          height={40}
+                          className="w-full h-full rounded-lg object-cover"
+                        />
                       ) : (
                         <span className="text-lg font-bold text-hiveGray-dark">
                           {attendee.user?.name?.charAt(0) || 'U'}
@@ -621,7 +628,7 @@ export default function EventsPageClient() {
                         {attendee.status}
                       </span>
                     </div>
-                    {selectedOrg?.role === 'admin' && (
+                    {isAdmin && (
                       <button className="p-2 hover:bg-red-100 rounded-lg transition-colors">
                         <X className="w-4 h-4 text-red-500" />
                       </button>
@@ -632,7 +639,7 @@ export default function EventsPageClient() {
               )}
             </div>
 
-            {selectedOrg?.role === 'admin' && (
+            {isAdmin && (
               <div className="mt-6 pt-4 border-t border-hiveGray-light">
                 <HiveButton className="w-full">
                   <UserPlus className="w-4 h-4 mr-2" />

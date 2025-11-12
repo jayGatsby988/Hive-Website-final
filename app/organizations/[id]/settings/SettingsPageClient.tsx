@@ -27,10 +27,10 @@ export default function SettingsPageClient() {
   const [copied, setCopied] = useState(false);
 
   const [formData, setFormData] = useState({
-    orgName: selectedOrg.name,
-    description: 'A community organization focused on environmental sustainability',
-    website: 'https://greenearthfoundation.org',
-    location: 'San Francisco, CA',
+    orgName: selectedOrg?.name || '',
+    description: selectedOrg?.description || 'A community organization focused on environmental sustainability',
+    website: selectedOrg?.website || 'https://greenearthfoundation.org',
+    location: selectedOrg?.address || 'San Francisco, CA',
     emailNotifications: true,
     pushNotifications: true,
     weeklyDigest: false,

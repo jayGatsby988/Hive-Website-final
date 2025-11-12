@@ -60,8 +60,6 @@ export default function SettingsPage() {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       <Header
-        isAuthenticated
-        userRole="user"
         withSidebar
       />
 

@@ -53,8 +53,8 @@ export default function OrganizationPageClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{selectedOrg.name}</h1>
-        <p className="text-gray-600 mt-1">{selectedOrg.category} Organization</p>
+        <h1 className="text-3xl font-bold text-gray-900">{selectedOrg?.name}</h1>
+        <p className="text-gray-600 mt-1">Organization</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -68,7 +68,7 @@ export default function OrganizationPageClient() {
             </div>
             <h3 className="font-semibold text-gray-900">Members</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{selectedOrg.members}</p>
+          <p className="text-3xl font-bold text-gray-900">{selectedOrg?.members || 0}</p>
           <p className="text-sm text-gray-600 mt-1">Active members</p>
         </motion.div>
 
@@ -82,7 +82,7 @@ export default function OrganizationPageClient() {
             </div>
             <h3 className="font-semibold text-gray-900">Events</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{selectedOrg.stats.upcomingEvents}</p>
+          <p className="text-3xl font-bold text-gray-900">{selectedOrg?.stats?.upcomingEvents || 0}</p>
           <p className="text-sm text-gray-600 mt-1">Upcoming events</p>
         </motion.div>
 
@@ -96,7 +96,7 @@ export default function OrganizationPageClient() {
             </div>
             <h3 className="font-semibold text-gray-900">Completed</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{selectedOrg.stats.completedEvents}</p>
+          <p className="text-3xl font-bold text-gray-900">{selectedOrg?.stats?.completedEvents || 0}</p>
           <p className="text-sm text-gray-600 mt-1">Past events</p>
         </motion.div>
 
@@ -110,7 +110,7 @@ export default function OrganizationPageClient() {
             </div>
             <h3 className="font-semibold text-gray-900">Hours</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{selectedOrg.stats.totalHours}</p>
+          <p className="text-3xl font-bold text-gray-900">{selectedOrg?.stats?.totalHours || 0}</p>
           <p className="text-sm text-gray-600 mt-1">Volunteer hours</p>
         </motion.div>
       </div>
@@ -143,7 +143,7 @@ export default function OrganizationPageClient() {
               <h2 className="text-xl font-bold text-gray-900">Upcoming Events</h2>
             </div>
             <motion.button
-              onClick={() => router.push(`/organizations/${selectedOrg.id}/events`)}
+              onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events`)}
               className="text-sm text-yellow-600 hover:text-yellow-700 font-semibold flex items-center gap-1"
               whileHover={{ x: 2 }}
             >
@@ -152,14 +152,14 @@ export default function OrganizationPageClient() {
             </motion.button>
           </div>
           <div className="space-y-3">
-            {selectedOrg.events.slice(0, 3).map((event, index) => (
+            {selectedOrg?.events?.slice(0, 3).map((event: any, index: number) => (
               <motion.div
                 key={event.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className="p-4 rounded-xl border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50/30 transition-all cursor-pointer"
-                onClick={() => router.push(`/organizations/${selectedOrg.id}/events`)}
+                onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events`)}
               >
                 <h3 className="font-semibold text-gray-900 mb-2">{event.title}</h3>
                 <div className="flex flex-wrap gap-3 text-sm text-gray-600">
@@ -206,7 +206,7 @@ export default function OrganizationPageClient() {
             </div>
           </div>
           <div className="space-y-3">
-            {selectedOrg.announcements.map((announcement, index) => {
+            {selectedOrg?.announcements?.map((announcement: any, index: number) => {
               const config = getPriorityConfig(announcement.priority);
               const IconComponent = config.icon;
 
@@ -247,7 +247,7 @@ export default function OrganizationPageClient() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <motion.button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/events`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/events`)}
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all text-left"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -258,7 +258,7 @@ export default function OrganizationPageClient() {
           </motion.button>
 
           <motion.button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/members`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/members`)}
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all text-left"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -269,7 +269,7 @@ export default function OrganizationPageClient() {
           </motion.button>
 
           <motion.button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/hours`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/hours`)}
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all text-left"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -280,7 +280,7 @@ export default function OrganizationPageClient() {
           </motion.button>
 
           <motion.button
-            onClick={() => router.push(`/organizations/${selectedOrg.id}/analytics`)}
+            onClick={() => selectedOrg && router.push(`/organizations/${selectedOrg.id}/analytics`)}
             className="p-4 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all text-left"
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}

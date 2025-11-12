@@ -60,7 +60,7 @@ export default function CreateOrganizationPage() {
         email: formData.email,
         website: formData.website,
         phone: formData.phone,
-        logo_url: formData.logo_url || null,
+        logo_url: formData.logo_url || undefined,
         is_active: formData.is_active,
         created_by: user.id,
         join_code: joinCode,
@@ -325,10 +325,10 @@ export default function CreateOrganizationPage() {
           >
             <h3 className="text-lg font-semibold text-blue-800 mb-2">What happens next?</h3>
             <ul className="list-disc list-inside text-blue-700 space-y-1">
-              <li>Your organization will be created and you'll become the admin</li>
+              <li>Your organization will be created and you&apos;ll become the admin</li>
               <li>You can start creating events and inviting members</li>
-              <li>Members can join using your organization's join code</li>
-              <li>You'll have full control over organization settings and events</li>
+              <li>Members can join using your organization&apos;s join code</li>
+              <li>You&apos;ll have full control over organization settings and events</li>
             </ul>
           </motion.div>
         </div>

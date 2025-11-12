@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -55,13 +55,7 @@ export default function AdminDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (selectedOrg && isAdmin) {
-      loadAdminData()
-    }
-  }, [selectedOrg, isAdmin])
-
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     if (!selectedOrg) return
 
     try {
@@ -150,7 +144,13 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false)
     }
+  }, [selectedOrg])
+
+  useEffect(() => {
+    if (selectedOrg && isAdmin) {
+      loadAdminData()
   }
+  }, [selectedOrg, isAdmin, loadAdminData])
 
   if (!isAdmin) {
     return (

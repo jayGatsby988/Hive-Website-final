@@ -682,7 +682,7 @@ export const eventService = {
       return []
     }
 
-    const orgIds = memberships.map(m => m.organization_id)
+    const orgIds = memberships.map((m: any) => m.organization_id)
 
     // Get events from those organizations
     const { data, error } = await supabase
@@ -757,7 +757,7 @@ export const userService = {
     if (error) throw error
     
     // Map to include user's role in each organization
-    return data?.map(item => ({
+    return data?.map((item: any) => ({
       ...item.organizations,
       userRole: item.role
     })).filter(Boolean) || []

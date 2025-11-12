@@ -103,7 +103,7 @@ export default function SuperAdminPage() {
       setAdminUsers(admins || []);
       setStats({
         totalAdmins: admins?.length || 0,
-        activeAdmins: admins?.filter(a => a.is_verified)?.length || 0,
+        activeAdmins: admins?.filter((a: any) => a.is_verified)?.length || 0,
         totalUsers: totalUsers?.[0]?.count || 0,
         totalOrganizations: totalOrgs?.[0]?.count || 0,
       });
@@ -312,7 +312,7 @@ export default function SuperAdminPage() {
           <div className="text-center">
             <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-hiveGray-dark mb-2">Access Denied</h2>
-            <p className="text-hiveGray">You don't have permission to access this page.</p>
+            <p className="text-hiveGray">You don&apos;t have permission to access this page.</p>
           </div>
         </div>
       </DashboardLayout>

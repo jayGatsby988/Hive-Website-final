@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,12 +42,7 @@ export default function StatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (!user || !orgId) return;
-    loadStats();
-  }, [user, orgId]);
-
-  const loadStats = async (isRefresh = false) => {
+  const loadStats = useCallback(async (isRefresh = false) => {
     if (!user) return;
 
     try {
@@ -91,7 +86,7 @@ export default function StatsPage() {
       console.log('[Stats] All volunteer hours across orgs:', allHours?.length || 0, 'records');
 
       // Calculate total hours/minutes/seconds for this organization
-      const totalHoursDecimal = hours?.reduce((sum, h) => sum + (h.hours || 0), 0) || 0;
+      const totalHoursDecimal = hours?.reduce((sum: number, h: any) => sum + (h.hours || 0), 0) || 0;
       console.log('[Stats] Total hours decimal:', totalHoursDecimal);
       
       const totalHours = Math.floor(totalHoursDecimal);
@@ -106,7 +101,7 @@ export default function StatsPage() {
       });
 
       // Get unique events
-      const uniqueEvents = new Set(hours?.map(h => h.event_id).filter(Boolean) || []);
+      const uniqueEvents = new Set(hours?.map((h: any) => h.event_id).filter(Boolean) || []);
 
       // Fetch event details separately
       const eventIds = Array.from(uniqueEvents).slice(0, 10);
@@ -115,13 +110,13 @@ export default function StatsPage() {
         .select('id, title')
         .in('id', eventIds.length > 0 ? eventIds : ['']);
 
-      const eventMap = new Map((events || []).map(e => [e.id, e.title]));
+      const eventMap = new Map((events || []).map((e: any) => [e.id, e.title]));
 
       // Get recent events with hours
       const recentEvents = (hours || [])
-        .filter(h => h.event_id)
+        .filter((h: any) => h.event_id)
         .slice(0, 10)
-        .map(h => {
+        .map((h: any) => {
           const eventHours = h.hours || 0;
           const hrs = Math.floor(eventHours);
           const mins = Math.floor((eventHours - hrs) * 60);
@@ -138,13 +133,13 @@ export default function StatsPage() {
         });
 
       // Fetch organization names separately
-      const allOrgIds = Array.from(new Set((allHours || []).map(h => h.organization_id).filter(Boolean)));
+      const allOrgIds = Array.from(new Set((allHours || []).map((h: any) => h.organization_id).filter(Boolean)));
       const { data: organizations } = await supabase
         .from('organizations')
         .select('id, name')
         .in('id', allOrgIds.length > 0 ? allOrgIds : ['']);
 
-      const orgNameMap = new Map((organizations || []).map(o => [o.id, o.name]));
+      const orgNameMap = new Map((organizations || []).map((o: any) => [o.id, o.name]));
 
       // Calculate stats by organization
       const orgStatsMap = new Map<string, {
@@ -154,16 +149,16 @@ export default function StatsPage() {
         eventIds: Set<string>;
       }>();
 
-      (allHours || []).forEach(h => {
+      (allHours || []).forEach((h: any) => {
         const orgId = h.organization_id;
         if (!orgId) return;
 
-        const orgName = orgNameMap.get(orgId) || 'Unknown Organization';
-
+        const orgName = orgNameMap.get(orgId) as string || 'Unknown Organization';
+        
         if (!orgStatsMap.has(orgId)) {
           orgStatsMap.set(orgId, {
             orgId,
-            orgName,
+            orgName: orgName as string,
             totalHours: 0,
             eventIds: new Set()
           });
@@ -211,7 +206,12 @@ export default function StatsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, orgId]);
+
+  useEffect(() => {
+    if (!user || !orgId) return;
+    loadStats();
+  }, [user, orgId, loadStats]);
 
   if (loading) {
     return (

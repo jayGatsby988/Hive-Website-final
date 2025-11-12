@@ -30,6 +30,21 @@ export interface Organization {
   created_at: string
   updated_at: string
   join_code?: string
+  // Runtime properties added by OrganizationContext
+  userRole?: string
+  role?: string  
+  members?: number
+  activeEvents?: number
+  stats?: {
+    totalHours: number
+    completedEvents: number
+    upcomingEvents: number
+  }
+  events?: Event[]
+  announcements?: any[]
+  generalChat?: any[]
+  category?: string
+  location?: string
 }
 
 export interface OrganizationMember {
@@ -66,6 +81,7 @@ export interface Event {
   registration_deadline?: string
   signup_count: number
   role_restrictions?: string[]
+  allowed_roles?: string[]
   started_at?: string
   ended_at?: string
   start_time?: string
@@ -158,8 +174,11 @@ export interface VolunteerHours {
   date: string
   hours: number
   notes?: string
+  description?: string
   created_at: string
   updated_at: string
+  status?: string
+  is_approved?: boolean
 }
 
 export interface VolunteerSession {

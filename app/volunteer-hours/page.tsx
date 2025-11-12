@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Clock, Calendar, Plus, Edit, Trash2, CheckCircle } from 'lucide-react'
 import HiveCard from '@/components/common/HiveCard'
@@ -29,11 +29,7 @@ export default function VolunteerHoursPage() {
     organization_id: '',
   })
 
-  useEffect(() => {
-    loadData()
-  }, [user, selectedOrg])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return
 
     try {
@@ -53,7 +49,11 @@ export default function VolunteerHoursPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedOrg, user])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,15 +65,15 @@ export default function VolunteerHoursPage() {
         date: formData.date,
         hours: parseFloat(formData.hours),
         description: formData.description,
-        event_id: formData.event_id || null,
-        organization_id: formData.organization_id || selectedOrg?.id || null,
+        event_id: formData.event_id || undefined,
+        organization_id: formData.organization_id || selectedOrg?.id || undefined,
         status: 'pending',
       }
 
       if (editingHour) {
-        await volunteerHoursService.update(editingHour.id, hourData)
+        await volunteerHoursService.updateHours(editingHour.id, hourData)
       } else {
-        await volunteerHoursService.create(hourData)
+        await volunteerHoursService.addHours(hourData)
       }
 
       await loadData()
@@ -99,7 +99,7 @@ export default function VolunteerHoursPage() {
     if (!confirm('Are you sure you want to delete this volunteer hour entry?')) return
 
     try {
-      await volunteerHoursService.delete(hourId)
+      await volunteerHoursService.deleteHours(hourId)
       await loadData()
     } catch (error) {
       console.error('Error deleting volunteer hours:', error)

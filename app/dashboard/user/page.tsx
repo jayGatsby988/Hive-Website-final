@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar as CalendarIcon,
@@ -49,23 +49,7 @@ export default function UserDashboard() {
   const [volunteerHours, setVolunteerHours] = useState<VolunteerHours[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Redirect admins to admin dashboard
-    if (isAdmin && !isSuperAdmin) {
-      window.location.href = '/dashboard/admin'
-      return
-    }
-    
-    // Redirect super admins to super admin dashboard
-    if (isSuperAdmin) {
-      window.location.href = '/super-admin'
-      return
-    }
-    
-    loadDashboardData();
-  }, [user, isAdmin, isSuperAdmin]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -96,7 +80,23 @@ export default function UserDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    // Redirect admins to admin dashboard
+    if (isAdmin && !isSuperAdmin) {
+      window.location.href = '/dashboard/admin'
+      return
+    }
+    
+    // Redirect super admins to super admin dashboard
+    if (isSuperAdmin) {
+      window.location.href = '/super-admin'
+      return
+    }
+    
+    loadDashboardData();
+  }, [isAdmin, isSuperAdmin, loadDashboardData]);
 
   const totalHours = volunteerHours.reduce((sum, hour) => sum + hour.hours, 0);
   const thisMonthHours = volunteerHours
@@ -214,7 +214,7 @@ export default function UserDashboard() {
         className="mb-8"
       >
         <h1 className="text-4xl font-bold text-hiveGray-dark mb-2">Dashboard</h1>
-        <p className="text-lg text-hiveGray">Welcome back! Here's your overview.</p>
+        <p className="text-lg text-hiveGray">Welcome back! Here&apos;s your overview.</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -384,12 +384,14 @@ export default function UserDashboard() {
                   </h2>
                   <div className="flex items-center gap-4 text-hiveGray">
                     <span className="px-3 py-1 bg-hiveYellow/20 text-hiveYellow rounded-full text-sm font-semibold">
-                      {selectedOrg.category}
+                      Organization
                     </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      {selectedOrg.location}
-                    </span>
+                    {selectedOrg.address && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {selectedOrg.address}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -409,7 +411,7 @@ export default function UserDashboard() {
                   <span className="text-sm text-hiveGray">Total Members</span>
                 </div>
                 <p className="text-2xl font-bold text-hiveGray-dark">
-                  {selectedOrg.members}
+                  {(selectedOrg as any).members || 0}
                 </p>
               </div>
 
@@ -419,7 +421,7 @@ export default function UserDashboard() {
                   <span className="text-sm text-hiveGray">Active Events</span>
                 </div>
                 <p className="text-2xl font-bold text-hiveGray-dark">
-                  {selectedOrg.activeEvents}
+                  {(selectedOrg as any).activeEvents || 0}
                 </p>
               </div>
 
@@ -429,7 +431,7 @@ export default function UserDashboard() {
                   <span className="text-sm text-hiveGray">Your Role</span>
                 </div>
                 <p className="text-2xl font-bold text-hiveGray-dark capitalize">
-                  {selectedOrg.role}
+                  {(selectedOrg as any).userRole || 'Member'}
                 </p>
               </div>
             </div>

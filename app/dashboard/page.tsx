@@ -3,26 +3,30 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 
 export default function DashboardPage() {
   const { user, loading } = useAuth()
+  const { isAdmin, loading: orgLoading } = useOrganization()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !orgLoading) {
       if (!user) {
         router.push('/login')
         return
       }
 
-      // Redirect based on user role
-      if (user.role === 'admin') {
+      // Redirect based on user role (organization-level admin/moderator or global super_admin)
+      if (user.role === 'super_admin') {
+        router.push('/super-admin')
+      } else if (isAdmin) {
         router.push('/dashboard/admin')
       } else {
         router.push('/dashboard/user')
       }
     }
-  }, [user, loading, router])
+  }, [user, loading, orgLoading, isAdmin, router])
 
   if (loading) {
     return (

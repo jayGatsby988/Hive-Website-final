@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -31,12 +31,12 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadEvents();
-  }, [user]);
-
-  const loadEvents = async () => {
-    if (!user) return;
+  const loadEvents = useCallback(async () => {
+    if (!user) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -60,7 +60,11 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',

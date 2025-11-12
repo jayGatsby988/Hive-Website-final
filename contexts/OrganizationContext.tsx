@@ -16,6 +16,7 @@ interface OrganizationContextType {
   setSelectedOrg: (org: Organization | null) => void
   refreshOrganizations: () => Promise<void>
   isAdmin: boolean
+  isModerator: boolean
   canCreateEvents: boolean
   canManageMembers: boolean
   canViewAnalytics: boolean
@@ -59,6 +60,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         }
       }))
 
+      console.log('Loaded organizations with roles:', convertedOrgs.map(o => ({ id: o.id, name: o.name, userRole: o.userRole })))
       setOrganizations(convertedOrgs)
       
       // Set user role and permissions for selected org
@@ -66,6 +68,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         const currentOrg = convertedOrgs.find(org => org.id === selectedOrg.id)
         if (currentOrg) {
           const role = currentOrg.userRole
+          console.log('Setting user role for selected org:', role)
           setUserRole(role)
           setUserPermissions(getUserPermissions(user, role))
         }
@@ -92,9 +95,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     if (selectedOrg && user) {
       const org = organizations.find(o => o.id === selectedOrg.id)
       if (org) {
-        const role = org.userRole
+        const role = org.userRole || null
+        console.log('OrganizationContext: Setting role for org', selectedOrg.name, ':', role)
         setUserRole(role)
-        setUserPermissions(getUserPermissions(user, role))
+        setUserPermissions(getUserPermissions(user, role || undefined))
       }
     } else {
       setUserRole(null)
@@ -122,6 +126,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     setSelectedOrg,
     refreshOrganizations,
     isAdmin,
+    isModerator,
     canCreateEvents,
     canManageMembers,
     canViewAnalytics

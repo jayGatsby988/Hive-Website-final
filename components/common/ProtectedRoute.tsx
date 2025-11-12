@@ -40,13 +40,13 @@ export function ProtectedRoute({
     return <>{fallback}</>
   }
 
-  // Check admin requirement
-  if (requireAdmin && user?.role !== 'super_admin' && userRole !== 'admin') {
+  // Check admin requirement (includes moderators)
+  if (requireAdmin && user?.role !== 'super_admin' && userRole !== 'admin' && userRole !== 'moderator') {
     return <>{fallback}</>
   }
 
   // Check specific permission
-  if (permission && !hasPermission(user, permission, organizationId, userRole)) {
+  if (permission && !hasPermission(user, permission, organizationId, userRole || undefined)) {
     return <>{fallback}</>
   }
 
@@ -68,7 +68,7 @@ function AccessDenied() {
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
         <p className="text-gray-600 mb-6">
-          You don't have permission to access this resource.
+          You don&apos;t have permission to access this resource.
         </p>
         <button 
           onClick={() => window.history.back()}
@@ -107,7 +107,7 @@ export function usePermissions() {
   const { userRole, userPermissions } = useOrganization()
 
   const hasPermissionCheck = (permission: Permission, orgId?: string) => {
-    return hasPermission(user, permission, orgId, userRole)
+    return hasPermission(user, permission, orgId, userRole || undefined)
   }
 
   const isAdmin = userRole === 'admin' || user?.role === 'super_admin'

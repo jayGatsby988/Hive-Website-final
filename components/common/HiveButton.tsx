@@ -48,7 +48,7 @@ const HiveButton = forwardRef<HTMLButtonElement, HiveButtonProps>(
         disabled={disabled}
         {...props}
       >
-        <span className="relative z-10">{children}</span>
+        <span className="relative z-10">{children as React.ReactNode}</span>
       </motion.button>
     );
   }

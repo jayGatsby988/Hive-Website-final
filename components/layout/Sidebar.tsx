@@ -80,6 +80,7 @@ export default function Sidebar({
   }
 
   const handleOrgSelect = (org: typeof selectedOrg) => {
+    if (!org) return;
     setSelectedOrg(org);
     setIsOrgMenuOpen(false);
     router.push(`/organizations/${org.id}`);

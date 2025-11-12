@@ -39,7 +39,9 @@ export default function OrganizationLayout({ children }: { children: React.React
   useEffect(() => {
     if (!loading && urlOrgId && organizations.length > 0) {
       const orgFromUrl = organizations.find(org => org.id === urlOrgId);
+      console.log('OrganizationLayout: Looking for org with ID:', urlOrgId, 'Found:', orgFromUrl?.name, 'UserRole:', (orgFromUrl as any)?.userRole)
       if (orgFromUrl && (!selectedOrg || selectedOrg.id !== urlOrgId)) {
+        console.log('OrganizationLayout: Setting selected org to:', orgFromUrl.name)
         setSelectedOrg(orgFromUrl);
       }
     }
@@ -58,7 +60,8 @@ export default function OrganizationLayout({ children }: { children: React.React
   }
 
   // If selectedOrg is still null after loading, show error
-  if (!selectedOrg) {
+  if (!selectedOrg && !loading) {
+    console.log('OrganizationLayout: No selected org. Organizations:', organizations.length, 'URL Org ID:', urlOrgId)
     return (
       <div className="min-h-screen bg-gradient-to-br from-hiveYellow/5 via-hiveWhite to-hiveYellow/10 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -66,7 +69,7 @@ export default function OrganizationLayout({ children }: { children: React.React
             <X className="w-8 h-8 text-red-500" />
           </div>
           <h2 className="text-2xl font-bold text-hiveGray-dark mb-2">Organization Not Found</h2>
-          <p className="text-hiveGray mb-6">You may not be a member of this organization or it doesn't exist.</p>
+          <p className="text-hiveGray mb-6">You may not be a member of this organization or it doesn&apos;t exist.</p>
           <Link href="/organizations">
             <button className="px-6 py-2 bg-hiveYellow text-white rounded-lg hover:bg-hiveYellow-dark transition-colors">
               Back to Organizations
@@ -96,7 +99,12 @@ export default function OrganizationLayout({ children }: { children: React.React
       title: 'Administration',
       items: [
         { name: 'Members', icon: Users, path: `/organizations/${orgId}/members`, badge: null },
-        { name: 'Audit Log', icon: FileText, path: `/organizations/${orgId}/audit-log`, badge: null },
+        {
+          name: 'Audit Log',
+          icon: FileText,
+          path: orgId ? `/audit-log/?org=${orgId}` : '/audit-log/',
+          badge: null,
+        },
         { name: 'Settings', icon: Settings, path: `/organizations/${orgId}/settings`, badge: null },
       ],
     }] : [{
@@ -130,7 +138,6 @@ export default function OrganizationLayout({ children }: { children: React.React
         stats: 'Stats',
         analytics: 'Analytics',
         'my-roles': 'My Roles',
-        'audit-log': 'Audit Log',
       };
 
       if (pageMap[pageName]) {
@@ -192,13 +199,13 @@ export default function OrganizationLayout({ children }: { children: React.React
               >
                 <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center shadow-md">
                   <span className="text-lg font-bold text-white">
-                    {selectedOrg.name.charAt(0)}
+                    {selectedOrg?.name?.charAt(0) || '?'}
                   </span>
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-bold truncate text-gray-800">{selectedOrg.name}</p>
+                  <p className="text-sm font-bold truncate text-gray-800">{selectedOrg?.name}</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-gray-600 capitalize">{selectedOrg.role}</p>
+                    <p className="text-xs text-gray-600 capitalize">{selectedOrg?.role || selectedOrg?.userRole || 'Member'}</p>
                     {isAdmin && (
                       <span className="px-2 py-0.5 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 text-xs font-semibold rounded-full">
                         Admin
@@ -249,7 +256,7 @@ export default function OrganizationLayout({ children }: { children: React.React
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{org.name}</p>
-                          <p className="text-xs text-gray-500 capitalize">{org.role}</p>
+                          <p className="text-xs text-gray-500 capitalize">{org.role || org.userRole || 'Member'}</p>
                         </div>
                       </motion.button>
                     ))}
@@ -436,7 +443,7 @@ export default function OrganizationLayout({ children }: { children: React.React
                 <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <Users className="w-5 h-5 text-yellow-600" />
                   <span className="text-sm font-semibold text-gray-800">
-                    {selectedOrg.members} members
+                    {selectedOrg?.members || 0} members
                   </span>
                 </div>
               </div>

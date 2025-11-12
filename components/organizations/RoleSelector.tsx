@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { roleService } from '@/lib/services';
 import { useAuth } from '@/contexts/AuthContext';
 import HiveCard from '@/components/common/HiveCard';
@@ -43,13 +43,7 @@ export default function RoleSelector({
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (targetUserId && organizationId) {
-      loadData();
-    }
-  }, [targetUserId, organizationId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!targetUserId) return;
 
     try {
@@ -67,7 +61,13 @@ export default function RoleSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId, targetUserId]);
+
+  useEffect(() => {
+    if (targetUserId && organizationId) {
+      loadData();
+    }
+  }, [targetUserId, organizationId, loadData]);
 
   const handleToggleRole = async (roleName: string) => {
     if (!targetUserId || updating) return;

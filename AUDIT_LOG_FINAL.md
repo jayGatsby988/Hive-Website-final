@@ -339,3 +339,6 @@ Step 6: Admin ends event
 
 **Complete audit trail for EVERYTHING!** 🎉
 
+
+
+

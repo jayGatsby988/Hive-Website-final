@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -75,17 +75,7 @@ export default function MembersPageClient() {
   })
   const [showBulkActions, setShowBulkActions] = useState(false)
 
-  useEffect(() => {
-    if (selectedOrg && isAdmin) {
-      loadMembers()
-    }
-  }, [selectedOrg, isAdmin])
-
-  useEffect(() => {
-    applyFilters()
-  }, [members, filters])
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     if (!selectedOrg) return
 
     try {
@@ -255,9 +245,9 @@ export default function MembersPageClient() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedOrg])
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...members]
 
     // Search filter
@@ -312,9 +302,18 @@ export default function MembersPageClient() {
         return aValue < bValue ? 1 : -1
       }
     })
-
     setFilteredMembers(filtered)
+  }, [members, filters])
+
+  useEffect(() => {
+    if (selectedOrg && isAdmin) {
+      loadMembers()
   }
+  }, [selectedOrg, isAdmin, loadMembers])
+
+  useEffect(() => {
+    applyFilters()
+  }, [applyFilters])
 
   const handleRoleChange = async (memberId: string, newRole: 'admin' | 'member' | 'moderator') => {
     if (!selectedOrg) return
@@ -546,12 +545,15 @@ export default function MembersPageClient() {
         <HiveCard className="mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
-              <HiveInput
-                placeholder="Search members..."
-                value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                icon={<Search className="w-4 h-4" />}
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <HiveInput
+                  placeholder="Search members..."
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
       </div>
 
             <div className="flex gap-4">

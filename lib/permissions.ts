@@ -14,7 +14,7 @@ export type Permission =
   | 'manage_resources'
   | 'view_volunteer_hours'
 
-export type Role = 'super_admin' | 'admin' | 'moderator' | 'member' | 'volunteer'
+export type Role = 'super_admin' | 'admin' | 'moderator' | 'member' | 'volunteer' | 'user'
 
 export interface RolePermissions {
   [key: string]: Permission[]
@@ -63,7 +63,8 @@ export const ROLE_PERMISSIONS: RolePermissions = {
   ],
   volunteer: [
     'view_volunteer_hours'
-  ]
+  ],
+  user: []
 }
 
 // Organization-specific role permissions

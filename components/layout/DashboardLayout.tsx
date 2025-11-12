@@ -19,7 +19,7 @@ export default function DashboardLayout({ children, userRole = 'user' }: Dashboa
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      <Header isAuthenticated userRole={userRole} withSidebar />
+      <Header withSidebar />
 
       <div
         className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto transition-all duration-300"

@@ -118,9 +118,9 @@ export default function AdminEventCreation() {
         description: formData.description.trim(),
         date: formData.date,
         time: formData.time,
-        end_time: formData.end_time || null,
-        location: formData.location || null,
-        address: formData.address || null,
+        end_time: formData.end_time || undefined,
+        location: formData.location || undefined,
+        address: formData.address || undefined,
         capacity: formData.capacity,
         max_attendees: formData.max_attendees,
         status: status,
@@ -130,7 +130,7 @@ export default function AdminEventCreation() {
         organization_id: selectedOrg.id,
         created_by: user.id,
         tags: formData.tags || [],
-        registration_deadline: formData.registration_deadline || null,
+        registration_deadline: formData.registration_deadline || undefined,
         allowed_roles: formData.allowed_roles || ['everyone'],
         signup_count: 0,
         is_active: true,
@@ -394,7 +394,7 @@ export default function AdminEventCreation() {
                 Who can see this event?
               </label>
               <p className="text-xs text-gray-500 mb-3">
-                Select which roles are allowed to view and sign up for this event. Select "everyone" to show to all members.
+                Select which roles are allowed to view and sign up for this event. Select &quot;everyone&quot; to show to all members.
               </p>
               <div className="space-y-2">
                 {/* Everyone option (default) */}

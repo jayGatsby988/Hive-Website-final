@@ -44,7 +44,7 @@ export default function HoursPageClient() {
               </div>
               <span className="font-medium text-hiveGray">Total Hours (2024)</span>
             </div>
-            <p className="text-4xl font-bold text-hiveGray-dark">{selectedOrg.stats.totalHours.toLocaleString()}</p>
+            <p className="text-4xl font-bold text-hiveGray-dark">{selectedOrg?.stats?.totalHours?.toLocaleString() || 0}</p>
           </HiveCard>
 
           <HiveCard className="bg-gradient-to-br from-green-100 to-green-50">
@@ -66,7 +66,9 @@ export default function HoursPageClient() {
               <span className="font-medium text-hiveGray">Avg per Member</span>
             </div>
             <p className="text-4xl font-bold text-hiveGray-dark">
-              {Math.round(selectedOrg.stats.totalHours / selectedOrg.members)}
+              {selectedOrg?.stats?.totalHours && selectedOrg?.members 
+                ? Math.round(selectedOrg.stats.totalHours / selectedOrg.members) 
+                : 0}
             </p>
           </HiveCard>
         </div>
