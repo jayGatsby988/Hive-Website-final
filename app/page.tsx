@@ -167,9 +167,9 @@ export default function Home() {
   ];
 
   const stats = [
-    { number: '10K+', label: 'Active Volunteers' },
-    { number: '500+', label: 'Organizations' },
-    { number: '50K+', label: 'Hours Logged' },
+    { number: '400+', label: 'Active Users' },
+    { number: '2+', label: 'Organizations' },
+    { number: '200+', label: 'Hours Logged' },
     { number: '95%', label: 'Satisfaction' },
   ];
 
@@ -274,7 +274,7 @@ export default function Home() {
                 <div className="bg-gradient-to-r from-yellow-100 to-amber-100 border border-yellow-300 rounded-full px-6 py-3 shadow-lg">
                   <div className="flex items-center gap-2 text-amber-700">
                     <Zap className="w-5 h-5" />
-                    <span className="font-semibold">Trusted by 10,000+ volunteers worldwide</span>
+                    <span className="font-semibold">Trusted by 400+ users and partnered with multiple clubs, including PNW</span>
                   </div>
                 </div>
               </motion.div>
@@ -416,6 +416,48 @@ export default function Home() {
             </div>
           </section>
 
+          <section className="relative py-32 px-6 bg-white">
+            <div className="max-w-7xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+                className="text-center mb-16"
+              >
+                <h2 className="text-5xl sm:text-6xl font-bold mb-6 text-gray-900">
+                  Trusted by{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-amber-600">
+                    400+ Users
+                  </span>
+                </h2>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+                  Partnered with multiple clubs and organizations, including PNW and others, to empower communities through volunteering
+                </p>
+                <div className="flex flex-wrap justify-center items-center gap-8 mt-12">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                    className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl px-8 py-6 border-2 border-yellow-200"
+                  >
+                    <p className="text-2xl font-bold text-gray-900">PNW</p>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl px-8 py-6 border-2 border-yellow-200"
+                  >
+                    <p className="text-xl font-semibold text-gray-700">+ Multiple Clubs</p>
+                  </motion.div>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+
           <section className="relative py-32 px-6 bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600">
             <div className="absolute inset-0 overflow-hidden">
               {[...Array(20)].map((_, i) => (
@@ -451,7 +493,7 @@ export default function Home() {
                   Why Choose HIVE?
                 </h2>
                 <p className="text-xl text-white/90 max-w-2xl mx-auto">
-                  Join thousands of organizations already making a difference
+                  Partnered with multiple clubs, including PNW, and trusted by 400+ users
                 </p>
               </motion.div>
 
@@ -504,7 +546,7 @@ export default function Home() {
                     Ready to Make an Impact?
                   </h2>
                   <p className="text-xl text-white/95 mb-10 max-w-2xl mx-auto leading-relaxed">
-                    Join thousands of volunteers and organizations making a difference in their communities every day.
+                    Join 400+ users and partner organizations, including PNW and other clubs, making a difference in their communities every day.
                   </p>
                   <Link href="/signup">
                     <motion.button
